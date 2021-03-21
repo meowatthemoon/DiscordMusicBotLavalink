@@ -1,0 +1,3 @@
+discord.py[voice]
+wavelink
+git+git://github.com/johnwmillr/LyricsGenius.git

@@ -6,7 +6,7 @@ import bot.Utility.Database as Database
 import random
 import datetime as dt
 import APIs.SpotifyAPI as Spotify
-import APIs.LyricsGenius as Lyrics
+import bot.Utility.Lyrics as Lyrics
 import bot.Utility.Utility as Utility
 import time
 import os
@@ -241,8 +241,8 @@ class Player(wavelink.Player):
         if ctx:
             self.context = ctx
         song = self.queue.next_song()
-        if song:
 
+        if song:
             self.timestamp = time.time()
             self.accumulated_time = 0
 
@@ -250,6 +250,7 @@ class Player(wavelink.Player):
 
             if self.play_menu:
                 await self.play_menu.delete()
+
             self.play_menu = await self.context.send(song.track.uri)
             await self.play_menu.add_reaction("⏸")
             await self.play_menu.add_reaction("▶")
@@ -266,10 +267,13 @@ class Player(wavelink.Player):
                 await self.play_menu.add_reaction("🔉")
                 await self.play_menu.add_reaction("🔊")
                 await self.play_menu.add_reaction("ℹ️")
+
+
             except discord.errors.NotFound:
                 pass
         else:
-            await self.send_notifications(f"> No more songs in queue.")
+            # await self.send_notifications(f"> No more songs in queue.")
+            pass
 
     async def shuffle_queue(self, ctx=None):
         if ctx:
@@ -360,23 +364,19 @@ class Player(wavelink.Player):
         if not song:
             await self.send_notifications(f"> No song playing.")
             return
-        if song.author and song.name:
-
-            genius = Lyrics.get_genius()
-            artist = genius.search_artist(song.author, max_songs=1)
-            if artist:
-                song = artist.song(song.name)
-                if song:
-                    lyrics = song.lyrics
-                    embed = discord.Embed(
-                        title=f"Lyrics for {song.author} - {song.name}",
-                        timestamp=dt.datetime.utcnow()
-                    )
-                    # embed.set_author(name =  "Query Results")
-                    embed.set_footer(text=f"Requested by {ctx.author.display_name}")  # icon_url=ctx.author.avatar.url
-                    embed.add_field(name="", value=lyrics, inline=False)
-                    await ctx.send(embed=embed)
-                    return
+        if song.name:
+            lyrics = Lyrics.get_lyrics(search_string=song.name)
+            if lyrics:
+                embed = discord.Embed(
+                    title=f"Lyrics for {song.author} - {song.name}",
+                    timestamp=dt.datetime.utcnow()
+                )
+                # embed.set_author(name =  "Query Results")
+                embed.set_footer(text=f"Requested by {ctx.author.display_name}")  # icon_url=ctx.author.avatar.url
+                embed.add_field(name="Lyrics", value=lyrics, inline=False)
+                await ctx.send(embed=embed)
+                return
+        print(f"song name = {song.name}")
         await self.send_notifications("> No lyrics found for current song.")
 
     async def now_playing(self, ctx=None):
@@ -495,7 +495,7 @@ class Player(wavelink.Player):
         else:
             if song.name and song.author:
                 await self.send_notifications(
-                    f"> Failed to add {Utility.format_input(song.author)} - {Utility.format_input(song.name)} to {Utility.format_input(playlist_name)}.")
+                    f"> {Utility.format_input(song.author)} - {Utility.format_input(song.name)} already exists in {Utility.format_input(playlist_name)}.")
             else:
                 await self.send_notifications(
                     f"> Failed to add {Utility.format_input(song.track.title)} to {Utility.format_input(playlist_name)}.")
@@ -1177,7 +1177,7 @@ def start():
 def start_lavalink():
     os.chdir("./jdk/bin")
     for line in start():
-        print(line)
+        #print(line)
         if "You can safely ignore" in line:
             break
 
